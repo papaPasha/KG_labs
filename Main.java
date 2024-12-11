@@ -1,0 +1,449 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class Main extends JFrame {
+    private JPanel colorPreview;
+    private JSlider redSlider, greenSlider, blueSlider;
+    private JSlider cyanSlider, magentaSlider, yellowSlider, ketSlider;
+    private JSlider hueSlider, saturationSlider, valueSlider;
+    private JTextField redField, greenField, blueField;
+    private JTextField cyanField, magentaField, yellowField, keyField;
+    private JTextField hueField, saturationField, valueField;
+    private boolean isUpdating = false;
+
+    public Main() {
+        setTitle("RGB, CMYK, HSV");
+        setSize(1000, 800);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        colorPreview = new JPanel();
+        colorPreview.setPreferredSize(new Dimension(500, 500));
+        add(colorPreview, BorderLayout.NORTH);
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new GridLayout(1, 3, 10, 10));
+        add(mainPanel, BorderLayout.CENTER);
+
+        createRGB(mainPanel);
+        createCMYK(mainPanel);
+        createHSV(mainPanel);
+        createPaletteButton();
+
+        updateColorPreview();
+    }
+
+    private void createRGB(JPanel mainPanel) {
+        JPanel rgbPanel = new JPanel();
+        rgbPanel.setLayout(new GridLayout(3, 3, 5, 5));
+        rgbPanel.setBorder(BorderFactory.createTitledBorder("RGB"));
+
+        redSlider = createSlider(0, 255, 255);
+        greenSlider = createSlider(0, 255, 255);
+        blueSlider = createSlider(0, 255, 255);
+        redField = createTextField("255");
+        greenField = createTextField("255");
+        blueField = createTextField("255");
+
+        rgbPanel.add(new JLabel("R:"));
+        rgbPanel.add(redSlider);
+        rgbPanel.add(redField);
+        rgbPanel.add(new JLabel("G:"));
+        rgbPanel.add(greenSlider);
+        rgbPanel.add(greenField);
+        rgbPanel.add(new JLabel("B:"));
+        rgbPanel.add(blueSlider);
+        rgbPanel.add(blueField);
+
+        mainPanel.add(rgbPanel);
+
+        redSlider.addChangeListener(e -> { if (!isUpdating) updateFromRGB(); });
+        greenSlider.addChangeListener(e -> { if (!isUpdating) updateFromRGB(); });
+        blueSlider.addChangeListener(e -> { if (!isUpdating) updateFromRGB(); });
+
+        redField.addActionListener(e -> updateRGBFromFields());
+        greenField.addActionListener(e -> updateRGBFromFields());
+        blueField.addActionListener(e -> updateRGBFromFields());
+    }
+
+    private void createCMYK(JPanel mainPanel) {
+        JPanel cmykPanel = new JPanel();
+        cmykPanel.setLayout(new GridLayout(4, 3, 5, 5));
+        cmykPanel.setBorder(BorderFactory.createTitledBorder("CMYK"));
+
+        cyanSlider = createSlider(0, 100, 0);
+        magentaSlider = createSlider(0, 100, 0);
+        yellowSlider = createSlider(0, 100, 0);
+        ketSlider = createSlider(0, 100, 0);
+        cyanField = createTextField("0");
+        magentaField = createTextField("0");
+        yellowField = createTextField("0");
+        keyField = createTextField("0");
+
+        cmykPanel.add(new JLabel("C:"));
+        cmykPanel.add(cyanSlider);
+        cmykPanel.add(cyanField);
+        cmykPanel.add(new JLabel("M:"));
+        cmykPanel.add(magentaSlider);
+        cmykPanel.add(magentaField);
+        cmykPanel.add(new JLabel("Y:"));
+        cmykPanel.add(yellowSlider);
+        cmykPanel.add(yellowField);
+        cmykPanel.add(new JLabel("K:"));
+        cmykPanel.add(ketSlider);
+        cmykPanel.add(keyField);
+
+        mainPanel.add(cmykPanel);
+
+        cyanSlider.addChangeListener(e -> { if (!isUpdating) updateFromCMYK(); });
+        magentaSlider.addChangeListener(e -> { if (!isUpdating) updateFromCMYK(); });
+        yellowSlider.addChangeListener(e -> { if (!isUpdating) updateFromCMYK(); });
+        ketSlider.addChangeListener(e -> { if (!isUpdating) updateFromCMYK(); });
+
+        cyanField.addActionListener(e -> updateCMYKFromFields());
+        magentaField.addActionListener(e -> updateCMYKFromFields());
+        yellowField.addActionListener(e -> updateCMYKFromFields());
+        keyField.addActionListener(e -> updateCMYKFromFields());
+    }
+
+    private void createHSV(JPanel mainPanel) {
+        JPanel hsvPanel = new JPanel();
+        hsvPanel.setLayout(new GridLayout(3, 3, 5, 5));
+        hsvPanel.setBorder(BorderFactory.createTitledBorder("HSV"));
+
+        hueSlider = createSlider(0, 360, 0);
+        saturationSlider = createSlider(0, 100, 100);
+        valueSlider = createSlider(0, 100, 100);
+        hueField = createTextField("0");
+        saturationField = createTextField("100");
+        valueField = createTextField("100");
+
+        hsvPanel.add(new JLabel("H:"));
+        hsvPanel.add(hueSlider);
+        hsvPanel.add(hueField);
+        hsvPanel.add(new JLabel("S:"));
+        hsvPanel.add(saturationSlider);
+        hsvPanel.add(saturationField);
+        hsvPanel.add(new JLabel("V:"));
+        hsvPanel.add(valueSlider);
+        hsvPanel.add(valueField);
+
+        mainPanel.add(hsvPanel);
+
+        hueSlider.addChangeListener(e -> { if (!isUpdating) updateFromHSV(); });
+        saturationSlider.addChangeListener(e -> { if (!isUpdating) updateFromHSV(); });
+        valueSlider.addChangeListener(e -> { if (!isUpdating) updateFromHSV(); });
+
+        hueField.addActionListener(e -> updateHSVFromFields());
+        saturationField.addActionListener(e -> updateHSVFromFields());
+        valueField.addActionListener(e -> updateHSVFromFields());
+    }
+
+    private void createPaletteButton() {
+        JButton paletteButton = new JButton("Palette");
+        paletteButton.addActionListener(e -> openColorPalette());
+        add(paletteButton, BorderLayout.SOUTH);
+    }
+
+    private void openColorPalette() {
+        JDialog colorPalette = new JDialog(this, "Palette", true);
+        colorPalette.setSize(500, 500);
+        colorPalette.setLayout(new BorderLayout());
+
+        JPanel palettePanel = new JPanel();
+        palettePanel.setLayout(new GridLayout(2, 3));
+
+        Color[] colors = {Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.ORANGE, Color.CYAN};
+        for (Color color : colors) {
+            JButton colorButton = new JButton();
+            colorButton.setBackground(color);
+            colorButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    colorPreview.setBackground(color);
+                    updateRGBFromColor(color);
+                }
+            });
+            palettePanel.add(colorButton);
+        }
+
+        colorPalette.add(palettePanel, BorderLayout.CENTER);
+        colorPalette.setVisible(true);
+    }
+
+    private void updateRGBFromColor(Color color) {
+        int r = color.getRed();
+        int g = color.getGreen();
+        int b = color.getBlue();
+
+        redSlider.setValue(r);
+        greenSlider.setValue(g);
+        blueSlider.setValue(b);
+
+        updateFromRGB();
+    }
+
+    private JSlider createSlider(int min, int max, int initial) {
+        return new JSlider(min, max, initial);
+    }
+
+    private JTextField createTextField(String value) {
+        JTextField field = new JTextField(value, 4);
+        field.setPreferredSize(new Dimension(50, 25));
+        return field;
+    }
+    private int parseFieldValue(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void updateRGBFromFields() {
+        int r = parseFieldValue(redField.getText());
+        int g = parseFieldValue(greenField.getText());
+        int b = parseFieldValue(blueField.getText());
+        redSlider.setValue(r);
+        greenSlider.setValue(g);
+        blueSlider.setValue(b);
+        updateFromRGB();
+    }
+
+    private void updateCMYKFromFields() {
+        int c = parseFieldValue(cyanField.getText());
+        int m = parseFieldValue(magentaField.getText());
+        int y = parseFieldValue(yellowField.getText());
+        int k = parseFieldValue(keyField.getText());
+        cyanSlider.setValue(c);
+        magentaSlider.setValue(m);
+        yellowSlider.setValue(y);
+        ketSlider.setValue(k);
+        updateFromCMYK();
+    }
+
+    private void updateHSVFromFields() {
+        int h = parseFieldValue(hueField.getText());
+        int s = parseFieldValue(saturationField.getText());
+        int v = parseFieldValue(valueField.getText());
+        hueSlider.setValue(h);
+        saturationSlider.setValue(s);
+        valueSlider.setValue(v);
+        updateFromHSV();
+    }
+
+
+    private void updateFromRGB() {
+        isUpdating = true;
+
+        int r = redSlider.getValue();
+        int g = greenSlider.getValue();
+        int b = blueSlider.getValue();
+
+        redField.setText(String.valueOf(r));
+        greenField.setText(String.valueOf(g));
+        blueField.setText(String.valueOf(b));
+
+        float[] cmyk = rgbToCmyk(r, g, b);
+        cyanSlider.setValue((int) (cmyk[0] * 100));
+        magentaSlider.setValue((int) (cmyk[1] * 100));
+        yellowSlider.setValue((int) (cmyk[2] * 100));
+        ketSlider.setValue((int) (cmyk[3] * 100));
+
+        cyanField.setText(String.valueOf((int) (cmyk[0] * 100)));
+        magentaField.setText(String.valueOf((int) (cmyk[1] * 100)));
+        yellowField.setText(String.valueOf((int) (cmyk[2] * 100)));
+        keyField.setText(String.valueOf((int) (cmyk[3] * 100)));
+
+        float[] hsv = rgbToHsv(r, g, b);
+        hueSlider.setValue((int) hsv[0]);
+        saturationSlider.setValue((int) (hsv[1] * 100));
+        valueSlider.setValue((int) (hsv[2] * 100));
+
+        hueField.setText(String.valueOf((int) hsv[0]));
+        saturationField.setText(String.valueOf((int) (hsv[1] * 100)));
+        valueField.setText(String.valueOf((int) (hsv[2] * 100)));
+
+        updateColorPreview();
+
+        isUpdating = false;
+    }
+
+    private void updateFromCMYK() {
+        isUpdating = true;
+
+        float c = cyanSlider.getValue() / 100f;
+        float m = magentaSlider.getValue() / 100f;
+        float y = yellowSlider.getValue() / 100f;
+        float k = ketSlider.getValue() / 100f;
+
+        cyanField.setText(String.valueOf(cyanSlider.getValue()));
+        magentaField.setText(String.valueOf(magentaSlider.getValue()));
+        yellowField.setText(String.valueOf(yellowSlider.getValue()));
+        keyField.setText(String.valueOf(ketSlider.getValue()));
+
+        int[] rgb = cmykToRgb(c, m, y, k);
+        redSlider.setValue(rgb[0]);
+        greenSlider.setValue(rgb[1]);
+        blueSlider.setValue(rgb[2]);
+
+        redField.setText(String.valueOf(rgb[0]));
+        greenField.setText(String.valueOf(rgb[1]));
+        blueField.setText(String.valueOf(rgb[2]));
+        float[] hsv = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+        hueSlider.setValue((int) hsv[0]);
+        saturationSlider.setValue((int) (hsv[1] * 100));
+        valueSlider.setValue((int) (hsv[2] * 100));
+        hueField.setText(String.valueOf((int) hsv[0]));
+        saturationField.setText(String.valueOf((int) (hsv[1] * 100)));
+        valueField.setText(String.valueOf((int) (hsv[2] * 100)));
+
+        updateColorPreview();
+
+        isUpdating = false;
+    }
+
+    private void updateFromHSV() {
+        isUpdating = true;
+
+        float h = hueSlider.getValue();
+        float s = saturationSlider.getValue() / 100f;
+        float v = valueSlider.getValue() / 100f;
+
+        hueField.setText(String.valueOf(hueSlider.getValue()));
+        saturationField.setText(String.valueOf(saturationSlider.getValue()));
+        valueField.setText(String.valueOf(valueSlider.getValue()));
+
+        int[] rgb = hsvToRgb(h, s, v);
+        redSlider.setValue(rgb[0]);
+        greenSlider.setValue(rgb[1]);
+        blueSlider.setValue(rgb[2]);
+
+        redField.setText(String.valueOf(rgb[0]));
+        greenField.setText(String.valueOf(rgb[1]));
+        blueField.setText(String.valueOf(rgb[2]));
+        float[] cmyk = rgbToCmyk(rgb[0], rgb[1], rgb[2]);
+        cyanSlider.setValue((int) (cmyk[0] * 100));
+        magentaSlider.setValue((int) (cmyk[1] * 100));
+        yellowSlider.setValue((int) (cmyk[2] * 100));
+        ketSlider.setValue((int) (cmyk[3] * 100));
+        cyanField.setText(String.valueOf((int) (cmyk[0] * 100)));
+        magentaField.setText(String.valueOf((int) (cmyk[1] * 100)));
+        yellowField.setText(String.valueOf((int) (cmyk[2] * 100)));
+        keyField.setText(String.valueOf((int) (cmyk[3] * 100)));
+
+        updateColorPreview();
+
+        isUpdating = false;
+    }
+
+    private void updateColorPreview() {
+        int r = redSlider.getValue();
+        int g = greenSlider.getValue();
+        int b = blueSlider.getValue();
+        colorPreview.setBackground(new Color(r, g, b));
+    }
+
+    private float[] rgbToCmyk(int r, int g, int b) {
+        float rf = r / 255f;
+        float gf = g / 255f;
+        float bf = b / 255f;
+
+        float k = 1 - Math.max(rf, Math.max(gf, bf));
+        if (k == 1) {
+            return new float[]{0, 0, 0, 1};
+        }
+        float c = (1 - rf - k) / (1 - k);
+        float m = (1 - gf - k) / (1 - k);
+        float y = (1 - bf - k) / (1 - k);
+        return new float[]{c, m, y, k};
+    }
+
+    private int[] cmykToRgb(float c, float m, float y, float k) {
+        int r = (int) ((1 - c) * (1 - k) * 255);
+        int g = (int) ((1 - m) * (1 - k) * 255);
+        int b = (int) ((1 - y) * (1 - k) * 255);
+        return new int[]{r, g, b};
+    }
+
+    private float[] rgbToHsv(int r, int g, int b) {
+        float rf = r / 255f;
+        float gf = g / 255f;
+        float bf = b / 255f;
+
+        float max = Math.max(rf, Math.max(gf, bf));
+        float min = Math.min(rf, Math.min(gf, bf));
+        float delta = max - min;
+
+        float h = 0, s, v = max;
+
+        if (delta != 0) {
+            if (max == rf) {
+                h = ((gf - bf) / delta) % 6;
+            } else if (max == gf) {
+                h = ((bf - rf) / delta) + 2;
+            } else {
+                h = ((rf - gf) / delta) + 4;
+            }
+
+            h *= 60;
+            if (h < 0) h += 360;
+        }
+
+        s = max == 0 ? 0 : delta / max;
+
+        return new float[]{h, s, v};
+    }
+
+    private int[] hsvToRgb(float h, float s, float v) {
+        float c = v * s;
+        float x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        float m = v - c;
+
+        float rf = 0, gf = 0, bf = 0;
+
+        if (h >= 0 && h < 60) {
+            rf = c;
+            gf = x;
+            bf = 0;
+        } else if (h >= 60 && h < 120) {
+            rf = x;
+            gf = c;
+            bf = 0;
+        } else if (h >= 120 && h < 180) {
+            rf = 0;
+            gf = c;
+            bf = x;
+        } else if (h >= 180 && h < 240) {
+            rf = 0;
+            gf = x;
+            bf = c;
+        } else if (h >= 240 && h < 300) {
+            rf = x;
+            gf = 0;
+            bf = c;
+        } else if (h >= 300 && h < 360) {
+            rf = c;
+            gf = 0;
+            bf = x;
+        }
+
+        int r = (int) ((rf + m) * 255);
+        int g = (int) ((gf + m) * 255);
+        int b = (int) ((bf + m) * 255);
+
+        return new int[]{r, g, b};
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            Main main = new Main();
+            main.setVisible(true);
+        });
+    }
+}
